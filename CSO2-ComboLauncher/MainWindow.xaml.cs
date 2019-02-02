@@ -347,13 +347,13 @@ namespace CSO2_ComboLauncher
                     }
                 }
 
-                StartMasterServer(ip, masterport, holypunchPort);
+                StartMasterServer(ip, masterport, holypunchPort, customHandler);
             }
         }
 
         private async void BtnGo_Click(object sender, RoutedEventArgs e)
         {
-            Match ip = null;
+            string ip = null;
 
             if (isHost.IsChecked == true)
                 if (IsNodeJsInstalled)
@@ -371,16 +371,18 @@ namespace CSO2_ComboLauncher
                             Log.Write(ee.Data);
 
                             if (regex != null)
+                            {
                                 if (regex.Matches(ee.Data).Count > 0)
                                 {
-                                    ip = regex.Match(ee.Data);
+                                    ip = regex.Match(ee.Data).Value;
                                     serverAddr.Dispatcher.BeginInvoke(new Action(() =>
                                     {
-                                        serverAddr.Text = ip.Value;
-                                        regex = null;
+                                        serverAddr.Text = ip;
                                     }));
+
+                                    regex = null;
                                 }
-                                else return;
+                            }
                         }));
                     }
                     else await Task.Run(() => StartMasterServer(serverAdd, mPort, hPort));
@@ -389,6 +391,19 @@ namespace CSO2_ComboLauncher
                 {
                     Log.Error("Node.Js is not installed, please download(https://nodejs.org/en/) and install nodejs before you want to be a host.");
                     return;
+                }
+
+            if (autoDetect.IsChecked == true)
+                for (; ; )
+                {
+                    await Task.Delay(100);
+                    if (ip != null)
+                    {
+                        serverAddr.Text = ip;
+                        Log.Write($"Detected ip:{ip}");
+                        await Task.Delay(100);
+                        break;
+                    }
                 }
 
             if (!File.Exists("Bin\\launcher.exe"))
@@ -454,16 +469,7 @@ namespace CSO2_ComboLauncher
 
             }
 
-            if (autoDetect.IsChecked == true)
-                for(; ; )
-                {
-                    await Task.Delay(100);
-                    if (ip != null)
-                    {
-                        await Task.Delay(100);
-                        break;
-                    }
-                }
+            
 
             var arg = $"-masterip {serverAddr.Text} -masterport {masterPort.Text}";
             arg += currentLang != "" ? $" -lang {currentLang}" : "";
